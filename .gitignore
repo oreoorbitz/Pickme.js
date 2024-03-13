@@ -1,0 +1,9 @@
+# Editor files
+.cache
+.vscode
+ 
+# Mac files
+.DS_Store
+ 
+# Node_modules
+node_modules
