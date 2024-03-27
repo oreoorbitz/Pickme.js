@@ -126,6 +126,13 @@ export class Maybe {
     return Maybe.of(fn(this.val))
   }
 
+  filter(predicate) {
+    if (this.isNothing() || !predicate(this.val)) {
+      return Maybe.of(null)
+    }
+    return this
+  }
+
   orElse(fallbackFn) {
     if (this.isNothing()) {
       return Maybe.of(fallbackFn())
