@@ -45,13 +45,13 @@ const createElement = tagName => Maybe.of(document.createElement(tagName))
 const isElement = element => element instanceof Element
 const hasAddEventListener = element =>
   typeof element.addEventListener === 'function'
-const maybeAddEventListener = (element, eventName, handler) =>
+  const maybeAddEventListener = (element, eventName, curriedHandler) =>
   Maybe.of(element)
     .filter(isElement)
     .filter(hasAddEventListener)
     .map(element => {
-      element.addEventListener(eventName, handler)
-      console.log(element, eventName, handler)
+      const handlerWithElement = event => curriedHandler(element)(event)
+      element.addEventListener(eventName, handlerWithElement)
       return element
     })
     .orElse(() => logError(`Unable to add event listener to element.`))
