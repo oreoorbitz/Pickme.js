@@ -1,10 +1,9 @@
-
 /**
  * Function to querySelect a single element
  * @param {string} string - The query string.
  * @returns {Function} A curried function that takes an element.
  */
-export const query = (string) => (element) => element.querySelector(string);
+export const query = string => element => element.querySelector(string)
 
 /**
  * Function to querySelect multiple elements with standard data-component attribute
@@ -12,11 +11,11 @@ export const query = (string) => (element) => element.querySelector(string);
  * @returns {Element[]} An array of DOM elements matching the specified component.
  */
 
-export const components = (string) =>
-  Array.from(document.querySelectorAll(`[data-component-${string}]`));
+export const components = string =>
+  Array.from(document.querySelectorAll(`[data-component-${string}]`))
 
-export const component = (string) => (element) =>
-  element.querySelector(`[data-component-${string}]`);
+export const component = string => element =>
+  element.querySelector(`[data-component-${string}]`)
 
 /**
  * Creates a listener for a specific event type on a given element.
@@ -24,20 +23,20 @@ export const component = (string) => (element) =>
  * @returns {Function} A curried function that takes a callback, an element, and optional variables.
  */
 
-const listenToElement = (eventType) => (callback) => (el, variables) => {
+const listenToElement = eventType => callback => (el, variables) => {
   if (el === undefined || el === null) {
-    return;
+    return
   }
-  el.addEventListener(eventType, (event) => {
-    callback(el, event, variables);
-  });
-  return el;
-};
+  el.addEventListener(eventType, event => {
+    callback(el, event, variables)
+  })
+  return el
+}
 
 /**
  * Creates an onClick event listener.
  */
-export const onClick = listenToElement("click");
+export const onClick = listenToElement('click')
 
 /**
  * Applies an array of functions to an array of values.
@@ -47,7 +46,7 @@ export const onClick = listenToElement("click");
 export const mapFunctions =
   (...functions) =>
   (...value) =>
-    functions.forEach((fn) => fn(...value));
+    functions.forEach(fn => fn(...value))
 
 /**
  * Delegates event listening to a selector within a root element.
@@ -57,33 +56,33 @@ export const mapFunctions =
  */
 export const delegateListen =
   (eventType, root = document) =>
-  (selector) =>
-  (callback) => {
-    const eventListener = (event) => {
-      const target = event.target.closest(selector);
+  selector =>
+  callback => {
+    const eventListener = event => {
+      const target = event.target.closest(selector)
       if (target) {
-        callback(target, event);
+        callback(target, event)
       }
-    };
+    }
 
-    root.addEventListener(eventType, eventListener);
+    root.addEventListener(eventType, eventListener)
 
     return () => {
-      root.removeEventListener(eventType, eventListener);
-    };
-  };
+      root.removeEventListener(eventType, eventListener)
+    }
+  }
 
 /**
  * Delegates event listening to a selector within a root element.
  * @param {string} eventType - The type of event.
  */
 
-export const listen = (eventType) => (callback) => (el, variables) => {
-  document.addEventListener(eventType, (event) => {
-    callback(el, event, variables);
-  });
-  return el;
-};
+export const listen = eventType => callback => (el, variables) => {
+  document.addEventListener(eventType, event => {
+    callback(el, event, variables)
+  })
+  return el
+}
 
 /**
  * Applies a list of functions to a list of arguments.
@@ -93,7 +92,7 @@ export const listen = (eventType) => (callback) => (el, variables) => {
 export const juxt =
   (...fns) =>
   (...args) =>
-    [...fns].map((fn) => [...args].map(fn));
+    [...fns].map(fn => [...args].map(fn))
 
 /**
  * Creates a pipeline of functions to apply to a value.
@@ -102,44 +101,36 @@ export const juxt =
  */
 export const pipe =
   (...fs) =>
-  (x) =>
-    fs.reduce((acc, f) => f(acc), x);
+  x =>
+    fs.reduce((acc, f) => f(acc), x)
 
-const map = (fn) => (m) => m.map(fn);
-
-const chain = (fn) => (m) => m.map(fn);
-
-const ap = (mf) => (m) => mf.ap(m);
-
-const orElse = (val) => (m) => m.orElse(val);
-
-const prop = (propName) => (obj) => obj == null ? undefined : obj[propName];
+export const lift = fn => maybeVal => maybeVal.map(fn)
 
 export class Maybe {
   constructor(val) {
-    this.val = val;
+    this.val = val
   }
 
   static of(val) {
-    return new Maybe(val);
+    return new Maybe(val)
   }
 
   isNothing() {
-    return this.val === null || this.val === undefined;
+    return this.val === null || this.val === undefined
   }
 
   map(fn) {
     if (this.isNothing()) {
-      return this;
+      return this
     }
-    return Maybe.of(fn(this.val));
+    return Maybe.of(fn(this.val))
   }
 
-  orElse(val) {
+  orElse(fallbackFn) {
     if (this.isNothing()) {
-      return Maybe.of(val);
+      return Maybe.of(fallbackFn())
     }
-    return this;
+    return this
   }
 }
 /**
@@ -148,10 +139,10 @@ export class Maybe {
  * @param {Function} f - The side-effect function to execute.
  * @returns {*} The original value.
  */
-export const tap = (x) => (f) => {
-  f(x);
-  return x;
-};
+export const tap = x => f => {
+  f(x)
+  return x
+}
 
 /**
  * Creates a thunk function.
@@ -159,10 +150,10 @@ export const tap = (x) => (f) => {
  * @returns {Function} A thunk function.
  */
 export const thunk =
-  (fn) =>
+  fn =>
   (...args) =>
   () =>
-    fn(...args);
+    fn(...args)
 
 /**
  * Composes a series of functions into a single function.
@@ -174,7 +165,7 @@ export const compose = (...fns) =>
     (f, g) =>
       (...args) =>
         f(g(...args))
-  );
+  )
 
 /**
  * Finds the index of a query-selected child within its parent.
@@ -183,7 +174,7 @@ export const compose = (...fns) =>
  * @returns {number} The index of the found element, or -1 if not found.
  */
 export const indexOfQuery = (el, string) =>
-  Array.prototype.indexOf.call(el.children, el.querySelector(string));
+  Array.prototype.indexOf.call(el.children, el.querySelector(string))
 
 /**
  * Finds the index of an element within a NodeList or similar.
@@ -192,22 +183,21 @@ export const indexOfQuery = (el, string) =>
  * @returns {number} The index of the element, or -1 if not found.
  */
 export const findIndex = (el, string) =>
-  Array.prototype.findIndex.call(el, string);
+  Array.prototype.findIndex.call(el, string)
 
 /**
  * Curried function to add a class to an element.
  * @param {String} className - The element to add a class to.
  * @returns {function(HTMLElement): void} - A function that takes an HTMLElement and adds the specified class to it.
  */
-export const curriedAddClass = (className) => (el) =>
-  el.classList.add(className);
+export const curriedAddClass = className => el => el.classList.add(className)
 /**
  * Curried function to remove a class from an element.
  * @param {String} className - The element to remove a class from.
  * @returns {function(HTMLElement): void} - A function that takes an HTMLElement and removes the specified class from it.
  */
-export const curriedRemoveClass = (className) => (el) =>
-  el.classList.remove(className);
+export const curriedRemoveClass = className => el =>
+  el.classList.remove(className)
 
 /**
  *
@@ -215,19 +205,19 @@ export const curriedRemoveClass = (className) => (el) =>
  * @param {*} event
  */
 export const bubbleEventToParent = (el, event) => {
-  el.parentElement.dispatchEvent(new CustomEvent(event.type, event));
-};
+  el.parentElement.dispatchEvent(new CustomEvent(event.type, event))
+}
 /**
  *
  * @param {String} event
  * @param {String} selector
  * @returns {Function} A function that takes an element and dispatches an event to the closest parent with a matching selector.
  */
-export const bubleEventToCLosest = (event, selector) => (el) => {
+export const bubleEventToCLosest = (event, selector) => el => {
   el.closest(selector).dispatchEvent(
     new CustomEvent(event, { bubbles: true, detail: { triggerElement: el } })
-  );
-};
+  )
+}
 
 /**
  * Sets the value of an input to the specified value.
@@ -235,8 +225,8 @@ export const bubleEventToCLosest = (event, selector) => (el) => {
  * @param {string} string - The value to set the input to.
  */
 export const setValue = (el, string) => {
-  el.value = string;
-};
+  el.value = string
+}
 
 /**
  * Sets the src of an image to the specified string.
@@ -244,8 +234,8 @@ export const setValue = (el, string) => {
  * @param {string} string - The src to set the image to.
  */
 export const setSrc = (el, string) => {
-  el.src = string;
-};
+  el.src = string
+}
 
 /**
  * Sets the inner text of an element to the specified string.
@@ -254,8 +244,8 @@ export const setSrc = (el, string) => {
  * @returns {void} - side effect only
  */
 export const setText = (el, string) => {
-  el.innerText = string;
-};
+  el.innerText = string
+}
 
 /**
  * Sets the href of an anchor to the specified string.
@@ -264,9 +254,21 @@ export const setText = (el, string) => {
  * @returns {void} - side effect only
  */
 export const setHref = (el, string) => {
-  el.href = string;
-};
+  el.href = string
+}
 
-export const setAttribute = (value) => (attribute) => (el) => {
-  el.setAttribute(attribute, value);
-};
+export const setAttribute = value => attribute => el => {
+  el.setAttribute(attribute, value)
+}
+
+// appendChild :: Element -> Element -> Element
+export const appendChild = parent => child => {
+  parent.appendChild(child)
+  return parent // Return parent for potential chaining
+}
+
+// liftAppendChild :: Maybe<Element> -> Maybe<Element> -> Maybe<Element>
+export const liftAppendChild = childMaybe => parentMaybe =>
+  parentMaybe.map(parent =>
+    childMaybe.map(appendChild(parent)).orElse(() => parent)
+  )

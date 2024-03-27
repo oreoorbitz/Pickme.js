@@ -1,9 +1,10 @@
-import pickMe from './modules/core/pickme.js'
+import Pickme from './modules/core/pickme.js'
 
-const pickMeInstance = new pickMe('#app')
-pickMeInstance.init()
-pickMeInstance.component('main', 'nav', 'nav', { id: 'main-nav' });
-pickMeInstance.component('nav', 'link', 'a', { href: '#home' });
+const onClickHandler = (pickMeElement, event) => {
+  console.log('Clicked');
+}
 
-
-console.log(pickMeInstance.componentTree)
+let pickMeInstance = new Pickme('app', 'div', { class: 'example' }, 'Some text', { onClick: onClickHandler });
+pickMeInstance.component('example', 'example-child', 'div', { class: 'example-child' }, 'Child content');
+pickMeInstance.registerEvent('onClick', onClickHandler);
+// pickMeInstance.modify('example', 'example-child', 'div', { class: 'example-child-modified' }, 'Modified child content').addClass('second-example-class').innerText('Updated child Example innertext');

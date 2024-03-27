@@ -1,110 +1,147 @@
-import {
-  Maybe,
-  pipe,
-  query,
-  component,
-  tap,
-} from "../../modules/utils/utils.js";
-import frel from "../../modules/utils/frel.js";
+import { pipe, Maybe, tap, liftAppendChild } from '../../modules/utils/utils.js'
+import frel from '../../modules/utils/frel.js'
 
-const createNewComponent = (
-  parentComponent,
-  componentId,
-  tagName,
-  attributes
-) => {
-  const newComponent = frel(tagName, attributes);
-  newComponent.setAttribute(`data-component-${componentId}`, "");
-  parentComponent.appendChild(newComponent);
-  return newComponent;
-};
+// logError :: String -> Maybe<null>
+const logError = message => {
+  console.error(message)
+  return Maybe.of(null) // Encapsulating null to maintain chainability
+}
 
-const replaceComponent = (
-  targetComponent,
-  componentId,
-  tagName,
-  attributes
-) => {
-  const newComponent = frel(tagName, attributes);
-  newComponent.setAttribute(`data-component-${componentId}`, "");
-  targetComponent.replaceWith(newComponent);
-  return newComponent;
-};
+const querySelector = selector => Maybe.of(document.querySelector(selector))
+const createElement = tagName => Maybe.of(document.createElement(tagName))
 
-const setAttributes = (targetComponent, attributes) =>
-  Object.entries(attributes).forEach(([attr, value]) => {
-    targetComponent[attr] = value;
-  });
-
-const cacheComponent = (
-  instance,
-  parentComponentId,
-  parentComponent,
-  componentId,
-  component
-) => {
-  if (!instance.componentTree[parentComponentId]) {
-    instance.componentTree[parentComponentId] = parentComponent;
-  }
-  instance.componentTree[`${parentComponentId}-${componentId}`] = component;
-  return component;
-};
-
-class pickMe {
-  constructor(mainQueryString) {
-    this.mainQueryString = mainQueryString;
-    this.componentTree = {};
+class Pickme {
+  constructor(namespace, tagName, attributes, innerText, eventHandlers) {
+    this.namespace = namespace // The namespace to identify elements.
+    this.tagName = tagName // The tag name for the root component.
+    this.attributes = attributes // Initial attributes for the root component.
+    this.innerText = innerText // Text content for the root component.
+    this.eventHandlers = eventHandlers // Event handlers for the root component.
+    this.components = {} // To store references to child components.
+    this.initRootComponent() // Initialize the root component.
   }
 
-  init() {
-    console.log("pickMe initialized");
+  initRootComponent() {
+    const rootSelector = `[data-pickme-component="${this.namespace}"]`
+    const rootMaybe = querySelector(rootSelector).orElse(() => createElement(this.tagName))
+  
+    rootMaybe.map(maybeElement => {
+      console.log(maybeElement.val)
+      Object.entries(this.attributes).forEach(([key, value]) => {
+        maybeElement.val.setAttribute(key, value)
+      })
+      maybeElement.val.textContent = this.innerText
+      Object.entries(this.eventHandlers).forEach(([event, handler]) => {
+        if (typeof handler === 'function') {
+          maybeElement.val.addEventListener(event, handler)
+        }
+      })
+      return maybeElement
+    })
+  
+    rootMaybe.orElse(() => {
+      const appElement = querySelector('#app').val
+      appElement.appendChild(rootMaybe.val)
+      return rootMaybe
+    })
+  
+    this.rootElement = rootMaybe.val
+  }
 
-    // Process main query string
-    const mainElement = document.querySelector(this.mainQueryString);
-    if (!mainElement) {
-      throw new Error(
-        `Main element not found with query: ${this.mainQueryString}`
-      );
+  // Registers a component as a child of another component.
+  component(parentComponentName, componentName, tagName, attributes, innerText) {
+    const parentSelector = `[data-pickme-component="${parentComponentName}"]`
+    const parentMaybe = querySelector(parentSelector)
+  
+    const childSelector = `[data-pickme-component="${componentName}"]`
+    const childMaybe = querySelector(childSelector)
+  
+    childMaybe.map(element => {
+      console.log(element)
+      const attributesMatch = Object.entries(attributes).every(([key, value]) => element.val.getAttribute(key) === value)
+      const innerTextMatch = element.val.textContent === innerText
+  
+      if (!attributesMatch || !innerTextMatch) {
+        element.val.remove()
+        logError(`Component "${componentName}" exists but doesn't match the specified attributes and inner text.`)
+      }
+    })
+  
+    if (childMaybe.isNothing()) {
+      const childElement = createElement(tagName).map(element => {
+        Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value))
+        element.textContent = innerText
+        return element
+      })
+  
+      liftAppendChild(childElement)(parentMaybe)
+      this.components[componentName] = childElement
+    }
+  }
+
+  registerEvent(eventName, handler) {
+    Object.entries(this.components).forEach(([componentName, maybeElement]) => {
+      maybeElement.val.addEventListener(eventName, handler)
+    })
+  }
+
+  // Modifies an existing component in the DOM.
+  modify(componentName, tagName, attributes, innerText) {
+    const selector = `[data-pickme-component="${componentName}"]`
+    const componentMaybe = querySelector(selector)
+
+    componentMaybe.map(element => {
+      const attributesMatch = Object.entries(attributes).every(([key, value]) => element.getAttribute(key) === value)
+      const innerTextMatch = element.textContent === innerText
+
+      if (!attributesMatch || !innerTextMatch) {
+        element.remove()
+        logError(`Component "${componentName}" exists but doesn't match the specified attributes and inner text.`)
+      }
+
+      return element
+    })
+
+    if (componentMaybe.isNothing()) {
+      logError(`Component "${componentName}" doesn't exist in the DOM.`)
     }
 
-    // Set as main parent element
-    this.mainComponent = mainElement;
+    return this // For method chaining.
   }
 
-  component(parentComponentId, componentId, tagName, attributes = {}) {
-    const parentComponent = Maybe.of(
-      this.componentTree[parentComponentId]
-    ).orElse(document.body);
-    const componentQuery = component(componentId);
+  // Adds a class to a component.
+  addClass(componentName, className) {
+    const selector = `[data-pickme-component="${componentName}"]`
+    const componentMaybe = querySelector(selector)
 
-    return pipe(
-      componentQuery,
-      (targetComponent) =>
-        Maybe.of(targetComponent)
-          .map((targetComponent) =>
-            targetComponent.tagName.toLowerCase() === tagName
-              ? setAttributes(targetComponent, attributes) || targetComponent
-              : replaceComponent(
-                  targetComponent,
-                  componentId,
-                  tagName,
-                  attributes
-                )
-          )
-          .orElse(
-            createNewComponent(
-              parentComponent.val,
-              componentId,
-              tagName,
-              attributes
-            )
-          )
-          .map((component) => {
-            cacheComponent(this, parentComponentId, parentComponent.val, componentId, component); 
-            return component; // Ensure something is returned from map 
-        }).val
-    )(parentComponent.val);
+    componentMaybe.map(element => {
+      element.classList.add(className)
+      return element
+    })
+
+    if (componentMaybe.isNothing()) {
+      logError(`Component "${componentName}" doesn't exist in the DOM.`)
+    }
+
+    return this // For method chaining.
+  }
+
+  // Sets the innerText for a component.
+  innerText(componentName, text) {
+    const selector = `[data-pickme-component="${componentName}"]`
+    const componentMaybe = querySelector(selector)
+
+    componentMaybe.map(element => {
+      element.textContent = text
+      return element
+    })
+
+    if (componentMaybe.isNothing()) {
+      logError(`Component "${componentName}" doesn't exist in the DOM.`)
+    }
+
+    return this // For method chaining.
   }
 }
 
-export default pickMe;
+export default Pickme
