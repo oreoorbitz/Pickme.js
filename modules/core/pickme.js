@@ -33,6 +33,23 @@ class Maybe {
   }
 }
 
+/**
+ * 
+ * @param {*} element 
+ * @param {*} eventName 
+ * @param {*} selector 
+ * @param {*} handler 
+ */
+const delegate = (element, eventName, selector, handler) => {
+  element.addEventListener(eventName, event => {
+    const target = event.target.closest(selector)
+    if (target) {
+      handler.call(target, event)
+    }
+  })
+}
+
+
 // logError :: String -> Maybe<null>
 const logError = message => {
   console.error(message)
@@ -50,11 +67,20 @@ const maybeAddEventListener = (element, eventName, handler) =>
     .filter(hasAddEventListener)
     .map(element => {
       element.addEventListener(eventName, handler)
+      console.log(element, eventName, handler)
       return element
     })
     .orElse(() => logError(`Unable to add event listener to element.`))
 
 class Pickme {
+    /**
+   * Creates an instance of the Pickme class.
+   * @param {string} namespace - The namespace for the root component.
+   * @param {string} tagName - The tag name for the root component.
+   * @param {Object} attributes - The attributes for the root component.
+   * @param {string} innerText - The initial inner text for the root component.
+   * @param {Object} eventHandlers - The event handlers for the root component.
+   */
   constructor(namespace, tagName, attributes, innerText, eventHandlers) {
     this.namespace = namespace
     this.tagName = tagName
@@ -93,6 +119,14 @@ class Pickme {
       })
   }
 
+    /**
+   * Creates a new component as a child of the specified parent component.
+   * @param {string} parentComponentName - The name of the parent component.
+   * @param {string} componentName - The name of the new component.
+   * @param {string} tagName - The tag name for the new component.
+   * @param {Object} attributes - The attributes for the new component.
+   * @param {string} innerText - The inner text for the new component.
+   */
   component(
     parentComponentName,
     componentName,
@@ -146,14 +180,45 @@ class Pickme {
       })
   }
 
-  registerEvent(eventName, handler) {
-    Object.values(this.components).forEach(element => {
-      maybeAddEventListener(element, eventName, handler).orElse(() =>
-        logError(`Unable to add event listener to component.`)
-      )
-    })
+  /**
+    * Registers an event for the specified component.
+    * @param {string} parentComponentName - The name of the parent component.
+    * @param {string} componentName - The name of the component to register the event for.
+    * @param {string} tagName - The tag name for the component.
+    * @param {Object} attributes - The attributes for the component.
+    * @param {string} innerText - The inner text for the component.
+    * @param {Object} eventHandlers - The event handlers for the component.
+  */
+  registerEvent(parentComponentName, componentName, tagName, attributes, innerText, eventHandlers) {
+    const childSelector = `[data-pickme-component="${parentComponentName}"] [data-pickme-component="${componentName}"]`
+    const childElement = document.querySelector(childSelector)
+  
+    if (childElement) {
+      const tagNameMatch = childElement.tagName.toLowerCase() === tagName.toLowerCase()
+      const attributesMatch = Object.entries(attributes).every(([key, value]) => childElement.getAttribute(key) === value)
+      const innerTextMatch = childElement.textContent === innerText
+  
+      if (tagNameMatch && attributesMatch && innerTextMatch) {
+        Object.entries(eventHandlers).forEach(([eventName, handler]) => {
+          maybeAddEventListener(childElement, eventName, handler)
+            .orElse(() => logError(`Unable to add event listener "${eventName}" to component "${componentName}".`))
+        })
+      } else {
+        logError(`Component "${componentName}" found, but it doesn't match the specified tagName, attributes, or innerText.`)
+      }
+    } else {
+      logError(`Component "${componentName}" not found. Unable to register event.`)
+    }
   }
-
+    /**
+   * Modifies an existing component with the specified properties.
+   * @param {string} parentComponentName - The name of the parent component.
+   * @param {string} componentName - The name of the component to modify.
+   * @param {string} tagName - The tag name for the component.
+   * @param {Object} attributes - The attributes for the component.
+   * @param {string} innerText - The inner text for the component.
+   * @returns {Pickme} The Pickme instance for method chaining.
+  */
   modify(parentComponentName, componentName, tagName, attributes, innerText) {
     const childSelector = `[data-pickme-component="${parentComponentName}"] [data-pickme-component="${componentName}"]`
     const childMaybe = querySelector(childSelector)
@@ -203,6 +268,11 @@ class Pickme {
     return this
   }
 
+  /**
+   * Adds a CSS class to the last modified component.
+   * @param {string} className - The CSS class to add.
+   * @returns {Pickme} The Pickme instance for method chaining.
+  */
   addClass(className) {
     const componentName = Object.keys(this.components).pop()
     const componentMaybe = Maybe.of(this.components[componentName])
@@ -221,6 +291,11 @@ class Pickme {
     return this
   }
 
+  /**
+   * Sets the inner text of the last modified component.
+   * @param {string} text - The inner text to set.
+   * @returns {Pickme} The Pickme instance for method chaining.
+   */
   setInnerText(text) {
     const componentName = Object.keys(this.components).pop()
     const componentMaybe = Maybe.of(this.components[componentName])

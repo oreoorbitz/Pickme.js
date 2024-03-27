@@ -19,7 +19,15 @@ pickMeInstance.component(
   'Child content'
 )
 
-pickMeInstance.registerEvent('onClick', onClickHandler)
+pickMeInstance.registerEvent(
+  'app',
+  'example-child',
+  'div',
+  { class: 'example-child' },
+  'Child content',
+  { click: onClickHandler }
+)
+
 pickMeInstance
   .modify(
     'app',
