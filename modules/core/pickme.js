@@ -45,16 +45,16 @@ const createElement = tagName => Maybe.of(document.createElement(tagName))
 const isElement = element => element instanceof Element
 const hasAddEventListener = element =>
   typeof element.addEventListener === 'function'
-  const maybeAddEventListener = (element, eventName, curriedHandler) =>
+const maybeAddEventListener = (instance, element, eventName, curriedHandler) =>
   Maybe.of(element)
     .filter(isElement)
     .filter(hasAddEventListener)
     .map(element => {
-      const handlerWithElement = event => curriedHandler(element)(event)
-      element.addEventListener(eventName, handlerWithElement)
-      return element
+      const handlerWithElement = event => curriedHandler(instance)(event);
+      element.addEventListener(eventName, handlerWithElement);
+      return element;
     })
-    .orElse(() => logError(`Unable to add event listener to element.`))
+    .orElse(() => logError(`Unable to add event listener to element.`));
 
 class Pickme {
     /**
@@ -184,7 +184,7 @@ class Pickme {
   
       if (tagNameMatch && attributesMatch && innerTextMatch) {
         Object.entries(eventHandlers).forEach(([eventName, handler]) => {
-          maybeAddEventListener(childElement, eventName, handler)
+          maybeAddEventListener(this, childElement, eventName, handler)
             .orElse(() => logError(`Unable to add event listener "${eventName}" to component "${componentName}".`))
         })
       } else {

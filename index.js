@@ -1,7 +1,16 @@
 import Pickme from './modules/core/pickme.js'
 
-const onClickHandler = (pickMeElement, event) => {
-  console.log('Clicked')
+const onClickHandler = instance => event => {
+  console.log('Clicked', { event, instance })
+  instance
+    .modify(
+      'app',
+      'example-child',
+      'div',
+      { class: 'example-child second-example-class' },
+      'test'
+    )
+    .addClass('third-example-class')
 }
 
 let pickMeInstance = new Pickme(
@@ -11,6 +20,7 @@ let pickMeInstance = new Pickme(
   'Some text',
   { onClick: onClickHandler }
 )
+
 pickMeInstance.component(
   'app',
   'example-child',
