@@ -33,22 +33,6 @@ class Maybe {
   }
 }
 
-/**
- * 
- * @param {*} element 
- * @param {*} eventName 
- * @param {*} selector 
- * @param {*} handler 
- */
-const delegate = (element, eventName, selector, handler) => {
-  element.addEventListener(eventName, event => {
-    const target = event.target.closest(selector)
-    if (target) {
-      handler.call(target, event)
-    }
-  })
-}
-
 
 // logError :: String -> Maybe<null>
 const logError = message => {
